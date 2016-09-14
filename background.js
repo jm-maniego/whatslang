@@ -1,13 +1,12 @@
 var WhatsLang = window.WhatsLang || {};
 chrome.runtime.onMessage.addListener(function(request, sender, response) {
   actions[request.action].call(this, request.params, response);
+  return true;
 });
 
 var actions = {
   translate: function(params, response) {
-    response.call(this, {translated_text: "AW"});
-
-    // Translator().translate.call(this, params.word, response);
+    Translator().translate.call(this, params.word, {success: response});
   }
 }
 
@@ -23,8 +22,7 @@ function Translator() {
     }
   }
 
-  var _translate = function(word, callback) {
-    var options = {};
+  var _translate = function(word, options) {
     $.extend(options, WhatsLang.config.translate_options);
     console.log("translating... " + word);
     console.log("translate options:", options)
@@ -40,8 +38,7 @@ function Translator() {
       dataType: 'json',
       success: function (data) {
         var parsed_data = _parse_data(data);
-        console.log(callback)
-        callback.call(this, {translated_text: "AW"});
+        options.success && options.success(parsed_data);
       },
       error: function(xhr, status, e) {
         options.error && options.error({e: e, xhr: xhr});
