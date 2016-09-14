@@ -5,7 +5,7 @@
   "version": "1.0",
 
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["lib/jquery.js", "background.js"]
   },
 
   "content_scripts": [
@@ -13,5 +13,8 @@
     "matches": ["<all_urls>"],
     "js": ["lib/jquery.js", "common.js", "content_scripts/main.js"]
     }
-  ]
+  ],
+  "permissions": [ "*://translate.google.com/*", "tabs", "tts" ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' https://ssl.google-analytics.com https://translate.google.com; object-src 'self'"
+
 }

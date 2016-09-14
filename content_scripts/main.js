@@ -1,27 +1,49 @@
 WhatsLang.content = {}
 WhatsLang.content.whatslang_container_id = 'whatslang-container';
-WhatsLang.content._init = function() {
-  // FIXME: Shadow DOM
-  var whatslang_container_id = WhatsLang.content.whatslang_container_id;
-  var $container = $('#' + whatslang_container_id);
-  if ($container.length === 0) {
-    $('body').prepend($('<div>', {id: whatslang_container_id}));
+
+WhatsLang.content.WhatsLangDialog = function(){
+  var _this = this;
+  var container_id = WhatsLang.content.whatslang_container_id;
+  var _translating = false;
+
+  _this.templates = {
+    container: function() {
+      _this.$el = $('<div>', {id: container_id});
+      return _this.$el;
+    }
   }
+
+  var _init = function() {
+    var $container = _this.templates.container();
+    $('body').prepend($container);
+  }
+
+  _this.setText = function(text){
+    return _this.$el.text(text) && this;
+  }
+
+  _this.update_text = function(text) {
+    if (!_translating) {
+      _this.setText('Translating...');
+      _translating = true;
+    }
+
+    WhatsLang.debounced_function(function() {
+      chrome.runtime.sendMessage({action: 'translate', params: {word: text}}, function(response) {
+        _this.setText(response.translated_text);
+        _translating = false;
+      });
+    })
+  }
+
+  _init();
+  return this;
 }
 
-WhatsLang.content._init();
-var $whatslang_container = $('#' + WhatsLang.content.whatslang_container_id);
+var $whatslang_container = new WhatsLang.content.WhatsLangDialog();
 
 $('body').on('keyup', 'div[contenteditable], textarea, input[type=text]', function() {
   var $this = $(this);
-  if (!$whatslang_container.data('translating')) {
-    $whatslang_container.data('translating', true).html('Translating...');
-  }
-
-  WhatsLang.debounced_function(function() {
-    var word_to_translate = $this.val() || $this.text();
-    chrome.runtime.sendMessage({action: 'translate', params: {word: word_to_translate}}, function(response) {
-      $whatslang_container.data('translating', false).html(response.translated_text);
-    });
-  })
+  var word_to_translate = $this.val() || $this.text();
+  $whatslang_container.update_text(word_to_translate);
 })

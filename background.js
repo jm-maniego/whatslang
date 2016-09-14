@@ -1,11 +1,13 @@
 var WhatsLang = window.WhatsLang || {};
 chrome.runtime.onMessage.addListener(function(request, sender, response) {
-  actions[request.action](request.params);
+  actions[request.action].call(this, request.params, response);
 });
 
 var actions = {
-  translate: function(params) {
-    Translator().translate(params.word, {success: response});
+  translate: function(params, response) {
+    response.call(this, {translated_text: "AW"});
+
+    // Translator().translate.call(this, params.word, response);
   }
 }
 
@@ -21,10 +23,12 @@ function Translator() {
     }
   }
 
-  var _translate = function(word, options) {
+  var _translate = function(word, callback) {
+    var options = {};
+    $.extend(options, WhatsLang.config.translate_options);
     console.log("translating... " + word);
-
-    var options = {
+    console.log("translate options:", options)
+    var ajax_options = {
       url: "https://translate.googleapis.com/translate_a/single?dt=t&dt=bd",
       data: {
         client: 'gtx',
@@ -34,16 +38,17 @@ function Translator() {
         dj: 1
       },
       dataType: 'json',
-      success: function on_success(data) {
+      success: function (data) {
         var parsed_data = _parse_data(data);
-        options.success && options.success.call(this, parsed_data);
+        console.log(callback)
+        callback.call(this, {translated_text: "AW"});
       },
       error: function(xhr, status, e) {
-        options.error && options.error.call(this, {e: e, xhr: xhr});
+        options.error && options.error({e: e, xhr: xhr});
       }
     };
 
-    $.ajax(options);
+    $.ajax(ajax_options);
   }
 
   return {
