@@ -1,6 +1,7 @@
 /* Positioning */
 #whatslang-container {
   z-index: 9999;
+  position: absolute;
 }
 
 /* Styles */
