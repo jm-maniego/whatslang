@@ -54,12 +54,12 @@ WhatsLang.content.View = function(model){
   }
 
   _this.show = function() {
-    _this.$el.position({
+    _this.$el.show().position({
       my: "left bottom",
       at: "left top-10",
       of: _this.$target,
       collision: "flip"
-    }).show();
+    });
   }
 
   _init();
@@ -69,11 +69,20 @@ WhatsLang.content.View = function(model){
 var whastlang_text = new WhatsLang.content.TextModel("");
 var whastlang_view = new WhatsLang.content.View(whastlang_text);
 
-$('body').on('keyup', 'div[contenteditable], textarea, input[type=text]', function() {
+$('body').on('keyup', 'div[contenteditable], textarea, input[type=text]', function(event) {
   var $this = $(this);
   var word_to_translate = $this.val() || $this.text();
+  var old_value         = $this.data('old_value');
+  var changed_value     = old_value !== word_to_translate
   whastlang_view.$target = $this;
   if (!$this.data('translating')) {
+    if (!changed_value) return;
+    if (!(word_to_translate.length > 0)) {
+      whastlang_view.hide();
+      return
+    }
+
+    $this.data('old_value', word_to_translate);
     whastlang_text.set_text("Translating...");
     $this.data('translating', true);
   }
