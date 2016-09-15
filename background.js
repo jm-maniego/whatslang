@@ -1,4 +1,36 @@
 var WhatsLang = window.WhatsLang || {};
+
+WhatsLang.config = {
+  _set_to_default: function() {
+    var translate_default_options = WhatsLang.config.translate_default_options;
+    chrome.storage.local.set({translate_options: translate_default_options});
+  },
+  init: function() {
+    WhatsLang.config._set_to_default();
+    WhatsLang.config._bind_events();
+  },
+  _bind_events: function() {
+    chrome.storage.onChanged.addListener(function(changes) {
+      for (key in changes) {
+        var storageChange = changes[key];
+        WhatsLang.config.translate_options[key] = storageChange.newValue;
+      }
+    })
+  },
+  translate_default_options: {
+    sl: "auto", // Source language
+    tl: "en"
+  },
+  translate_options: {
+    sl: "auto",
+    tl: "en"
+  }
+}
+
+chrome.runtime.onInstalled.addListener(function(details) {
+  WhatsLang.config.init();
+})
+
 chrome.runtime.onMessage.addListener(function(request, sender, response) {
   actions[request.action].call(this, request.params, response);
   return true;
@@ -50,32 +82,5 @@ function Translator() {
 
   return {
     translate: _translate
-  }
-}
-
-WhatsLang.config = {
-  _set_to_default: function() {
-    var translate_default_options = WhatsLang.config.translate_default_options;
-    chrome.storage.local({translate_options: translate_default_options});
-  },
-  _init: function() {
-    WhatsLang.config._set_to_default();
-    WhatsLang.config._bind_events();
-  },
-  _bind_events: function() {
-    chrome.storage.local.onChanged(function(changes) {
-      for (key in changes) {
-        var storageChange = changes[key];
-        WhatsLang.config.translate_options[key] = storageChange.newValue;
-      }
-    })
-  },
-  translate_default_options: {
-    sl: "auto", // Source language
-    tl: "en"
-  },
-  translate_options: {
-    sl: "auto",
-    tl: "en"
   }
 }
