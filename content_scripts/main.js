@@ -3,17 +3,43 @@ WhatsLang.content.whatslang_container_id = 'whatslang-container';
 
 WhatsLang.content.TextModel = function(text) {
   var _this = this;
-  _this.text = text;
+  _this.translating = false;
+  _this.text         = text;
+  _this.old_text     = '';
+  _this.translated_text = '';
   _this.set_text = function(text) {
-    _this.text = text;
-    _this.onchanged(_this);
+    _this.old_text = _this.text;
+    _this.text     = text;
   };
+
+  _this.set_translated_text = function(text) {
+    _this.translated_text = text;
+    _this.on_change(_this);
+  }
 
   _this.present = function() {
     return _this.text.trim().length > 0;
   }
 
-  _this.onchanged = function() {};
+  _this.changed = function() {
+    return _this.old_text !== _this.text;
+  }
+
+  _this.on_change = function() {};
+
+  _this.translate = function() {
+    if (!_this.translating) {
+      _this.set_translated_text("Translating...");
+      _this.translating = true
+    }
+
+    WhatsLang.debounced_function(function() {
+      chrome.runtime.sendMessage({action: 'translate', params: {word: _this.text}}, function(response) {
+        _this.set_translated_text(response.translated_text);
+      });
+      _this.translating = false
+    })
+  }
 }
 
 WhatsLang.content.View = function(model){
@@ -23,9 +49,9 @@ WhatsLang.content.View = function(model){
 
   _this.model = model;
 
-  _this.model.onchanged = function(text_model) {
+  _this.model.on_change = function(text_model) {
     if (text_model.present()) {
-      _this.set_text(text_model.text);
+      _this.set_text(text_model.translated_text);
       _this.show();
     } else {
       _this.hide();
@@ -69,28 +95,32 @@ WhatsLang.content.View = function(model){
 var whastlang_text = new WhatsLang.content.TextModel("");
 var whastlang_view = new WhatsLang.content.View(whastlang_text);
 
-$('body').on('keyup', 'div[contenteditable], textarea, input[type=text]', function(event) {
+$('body').on('keypress', 'div[contenteditable], input[type=text]', function(event) {
+  var $this = $(this);
+
+  if (event.which == 13) {
+    if (whastlang_text.translating) {
+      event.preventDefault();
+      return false;
+    } else {
+      var translated_text = whastlang_text.translated_text;
+      $this.val(translated_text).text(translated_text);
+    }
+  }
+});
+
+$('body').on('keyup', 'div[contenteditable], input[type=text]', function(event) {
   var $this = $(this);
   var word_to_translate = $this.val() || $this.text();
-  var old_value         = $this.data('old_value');
-  var changed_value     = old_value !== word_to_translate
-  whastlang_view.$target = $this;
-  if (!$this.data('translating')) {
-    if (!changed_value) return;
-    if (!(word_to_translate.length > 0)) {
-      whastlang_view.hide();
-      return
-    }
 
-    $this.data('old_value', word_to_translate);
-    whastlang_text.set_text("Translating...");
-    $this.data('translating', true);
+  whastlang_view.$target = $this;
+  whastlang_text.set_text(word_to_translate);
+
+  if (!whastlang_text.changed()) return;
+  if (!whastlang_text.present()) {
+    whastlang_view.hide();
+    return
   }
 
-  WhatsLang.debounced_function(function() {
-    chrome.runtime.sendMessage({action: 'translate', params: {word: word_to_translate}}, function(response) {
-      whastlang_text.set_text(response.translated_text);
-    });
-    $this.data('translating', false);
-  })
+  whastlang_text.translate();
 })

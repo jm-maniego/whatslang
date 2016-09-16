@@ -9,6 +9,7 @@
   background-color: #FAFAFA;
   border: 1px rgba(100,100,100,0.3) solid;
   box-shadow: 1px 1px 5px rgba(0,0,0,0.2);
+  opacity: 0.97;
   padding: 15px;
   width: 250px;
 }
